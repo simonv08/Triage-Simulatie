@@ -5,5 +5,5 @@ public abstract class TriageTool : MonoBehaviour
     public string toolName;
     public bool isAvailable = true;
 
-    public abstract VitalSigns UseTool(Patient p);
+    public abstract VitalSigns UseTool(Patient3D patient);
 }

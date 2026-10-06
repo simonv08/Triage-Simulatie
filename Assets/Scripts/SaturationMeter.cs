@@ -7,14 +7,14 @@ public class SaturationMeter : TriageTool
         toolName = "Pulse Oximeter";
     }
 
-    public override VitalSigns UseTool(Patient p)
+    public override VitalSigns UseTool(Patient3D patient)
     {
-        measureSpO2(p);
-        return p.vitals;
+        measureSpO2(patient);
+        return patient.vitals;
     }
 
-    public int measureSpO2(Patient p)
+    public int measureSpO2(Patient3D patient)
     {
-        return p.vitals.oxygenSaturation;
+        return patient.vitals.oxygenSaturation;
     }
 }

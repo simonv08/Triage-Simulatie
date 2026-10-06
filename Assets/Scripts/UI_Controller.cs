@@ -3,91 +3,54 @@ using TMPro;
 
 public class UI_Controller : MonoBehaviour
 {
+    public static UI_Controller Instance { get; private set; }
+
     [Header("UI Panels")]
-    public GameObject gameplayPanel;
+    public GameObject gameplayHUD;
+    public GameObject interactionPromptPanel;
     public GameObject resultsPanel;
 
-    [Header("Gameplay UI Elements")]
-    public TextMeshProUGUI patientIdText;
-    public TextMeshProUGUI symptomsText;
-    public TextMeshProUGUI vitalsDisplayText;
+    [Header("HUD Text Elements")]
+    public TextMeshProUGUI patientInfoText;
+    public TextMeshProUGUI vitalsResultText;
     public TextMeshProUGUI timerText;
 
-    [Header("Results UI Elements")]
+    [Header("Results Elements")]
     public TextMeshProUGUI finalScoreText;
     public TextMeshProUGUI feedbackReportText;
 
-    [Header("Tool References")]
-    public SaturationMeter saturationMeter;
-    public BloodPressureCuff bpCuff;
-
-    private void Update()
+    private void Awake()
     {
-        // Only accept input if the gameplay panel is active
-        if (!gameplayPanel.activeSelf) return;
-
-        HandleToolInputs();
-        HandleTriageInputs();
+        if (Instance == null) Instance = this;
+        else Destroy(gameObject);
     }
 
-    private void HandleToolInputs()
+    public void ShowInteractionPrompt(Patient3D patient)
     {
-        // Press Q to use Saturation Meter
-        if (Input.GetKeyDown(KeyCode.Q))
-        {
-            Patient current = GameManager.Instance.GetCurrentPatient();
-            if (current != null && saturationMeter != null)
-            {
-                VitalSigns v = saturationMeter.UseTool(current);
-                vitalsDisplayText.text = $"[Q] Pulse Oximeter: {v.oxygenSaturation}% SpO2";
-            }
-        }
+        if (interactionPromptPanel != null) interactionPromptPanel.SetActive(true);
 
-        // Press E to use Blood Pressure Cuff
-        if (Input.GetKeyDown(KeyCode.E))
+        if (patientInfoText != null)
         {
-            Patient current = GameManager.Instance.GetCurrentPatient();
-            if (current != null && bpCuff != null)
-            {
-                VitalSigns v = bpCuff.UseTool(current);
-                vitalsDisplayText.text = $"[E] BP Cuff: {v.bloodPressure}";
-            }
+            patientInfoText.text = $"<b>Patient ID: {patient.patientId}</b>\n" +
+                                   $"Symptomen: {patient.symptomsDescription}\n\n" +
+                                   $"<i>[Q] SpO2  |  [E] Bloeddruk  |  [1] Rood  [2] Oranje  [3] Geel  [4] Groen</i>";
         }
     }
 
-    private void HandleTriageInputs()
+    public void HideInteractionPrompt()
     {
-        // Keyboard shortcuts for Triage Categories:
-        // 1 = RED, 2 = ORANGE, 3 = YELLOW, 4 = GREEN
-        if (Input.GetKeyDown(KeyCode.Alpha1))
-        {
-            GameManager.Instance.ProcessTriageChoice(TriageCategory.RED);
-        }
-        else if (Input.GetKeyDown(KeyCode.Alpha2))
-        {
-            GameManager.Instance.ProcessTriageChoice(TriageCategory.ORANGE);
-        }
-        else if (Input.GetKeyDown(KeyCode.Alpha3))
-        {
-            GameManager.Instance.ProcessTriageChoice(TriageCategory.YELLOW);
-        }
-        else if (Input.GetKeyDown(KeyCode.Alpha4))
-        {
-            GameManager.Instance.ProcessTriageChoice(TriageCategory.GREEN);
-        }
+        if (interactionPromptPanel != null) interactionPromptPanel.SetActive(false);
+        if (vitalsResultText != null) vitalsResultText.text = "";
     }
 
-    public void DisplayPatientInfo(Patient p)
+    public void DisplayVitalResult(string result)
     {
-        if (p == null) return;
-
-        patientIdText.text = $"Patient ID: {p.patientId}";
-        symptomsText.text = $"Symptoms: {p.GetSymptoms()}";
-        vitalsDisplayText.text = "Vitals: [Q] Measure SpO2 | [E] Measure BP";
+        if (vitalsResultText != null) vitalsResultText.text = result;
     }
 
     public void UpdateTimerDisplay(float time)
     {
+        if (timerText == null) return;
         int minutes = Mathf.FloorToInt(time / 60F);
         int seconds = Mathf.FloorToInt(time % 60F);
         timerText.text = string.Format("{0:00}:{1:00}", minutes, seconds);
@@ -95,10 +58,10 @@ public class UI_Controller : MonoBehaviour
 
     public void ShowFinalResults(int score, string feedback)
     {
-        gameplayPanel.SetActive(false);
-        resultsPanel.SetActive(true);
+        if (gameplayHUD != null) gameplayHUD.SetActive(false);
+        if (resultsPanel != null) resultsPanel.SetActive(true);
 
-        finalScoreText.text = $"Final Score: {score}";
-        feedbackReportText.text = feedback;
+        if (finalScoreText != null) finalScoreText.text = $"Eindscore: {score}";
+        if (feedbackReportText != null) feedbackReportText.text = feedback;
     }
 }

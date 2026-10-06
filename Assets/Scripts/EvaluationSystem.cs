@@ -1,12 +1,12 @@
-using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine;
 
 public class EvaluationSystem : MonoBehaviour
 {
     private float accuracyPercentage;
     private float timeBonus;
 
-    public int CalculateFinalScore(List<Patient> patients, float timeRemaining)
+    public int CalculateFinalScore(List<Patient3D> patients, float timeRemaining)
     {
         if (patients == null || patients.Count == 0) return 0;
 
@@ -14,7 +14,6 @@ public class EvaluationSystem : MonoBehaviour
 
         foreach (var p in patients)
         {
-            // Simple evaluation logic: Critical patients should be RED or ORANGE
             if (p.isCriticallyIll && (p.assignedCategory == TriageCategory.RED || p.assignedCategory == TriageCategory.ORANGE))
             {
                 correctAssignments++;
@@ -34,6 +33,6 @@ public class EvaluationSystem : MonoBehaviour
 
     public string GenerateFeedbackReport()
     {
-        return $"Accuracy: {accuracyPercentage:F1}%\nTime Bonus: +{Mathf.RoundToInt(timeBonus)} pts";
+        return $"Nauwkeurigheid: {accuracyPercentage:F1}%\nTijdbonus: +{Mathf.RoundToInt(timeBonus)} pt";
     }
 }

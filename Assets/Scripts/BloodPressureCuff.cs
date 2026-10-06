@@ -7,14 +7,14 @@ public class BloodPressureCuff : TriageTool
         toolName = "Blood Pressure Cuff";
     }
 
-    public override VitalSigns UseTool(Patient p)
+    public override VitalSigns UseTool(Patient3D patient)
     {
-        measureBP(p);
-        return p.vitals;
+        measureBP(patient);
+        return patient.vitals;
     }
 
-    public string measureBP(Patient p)
+    public string measureBP(Patient3D patient)
     {
-        return p.vitals.bloodPressure;
+        return patient.vitals.bloodPressure;
     }
 }
