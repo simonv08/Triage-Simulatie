@@ -51,6 +51,7 @@ public class UI_Controller : MonoBehaviour
     public void UpdateTimerDisplay(float time)
     {
         if (timerText == null) return;
+
         int minutes = Mathf.FloorToInt(time / 60F);
         int seconds = Mathf.FloorToInt(time % 60F);
         timerText.text = string.Format("{0:00}:{1:00}", minutes, seconds);
@@ -62,6 +63,11 @@ public class UI_Controller : MonoBehaviour
         if (resultsPanel != null) resultsPanel.SetActive(true);
 
         if (finalScoreText != null) finalScoreText.text = $"Eindscore: {score}";
-        if (feedbackReportText != null) feedbackReportText.text = feedback;
+
+        if (feedbackReportText != null)
+        {
+            // Voegt automatisch de instructie toe onder het eindrapport
+            feedbackReportText.text = $"{feedback}\n\n<b><color=#FFFF00>Druk op [ \\ ] om de training opnieuw te starten</color></b>";
+        }
     }
 }

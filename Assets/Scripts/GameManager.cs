@@ -1,23 +1,29 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.InputSystem; // Nodig voor het New Input System
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
-    [Header("Game State")]
-    private int currentScore;
-    private float timeRemaining;
-    private bool isGameActive;
+    [Header("Student & Scenario Settings")]
+    public string currentStudentId = "CURSIST_123";
+    public int totalPatientsInScenario = 5;
 
-    [Header("Settings")]
-    public float scenarioDuration = 180f; // 3 minuten
-    public int totalPatientsInScenario = 3;
+    [Header("Timer Settings")]
+    [Tooltip("Tijd in seconden (bijv. 300 = 5 minuten)")]
+    public float scenarioDuration = 300f;
 
     [Header("References")]
     public EvaluationSystem evaluationSystem;
 
+    private TriageSessionData currentSession;
     private List<Patient3D> triagedPatients = new List<Patient3D>();
+    private float startTime;
+    private float timeRemaining;
+    private bool isScenarioActive = false;
 
     private void Awake()
     {
@@ -32,39 +38,81 @@ public class GameManager : MonoBehaviour
 
     private void Update()
     {
-        if (isGameActive)
+        // Herstart direct met de '\' toets via het New Input System
+        if (Keyboard.current != null && Keyboard.current.backslashKey.wasPressedThisFrame)
         {
-            UpdateTimer();
+            RestartScenario();
+            return;
+        }
+
+        if (!isScenarioActive) return;
+
+        if (timeRemaining > 0)
+        {
+            timeRemaining -= Time.deltaTime;
+
+            if (UI_Controller.Instance != null)
+            {
+                UI_Controller.Instance.UpdateTimerDisplay(timeRemaining);
+            }
+        }
+        else
+        {
+            timeRemaining = 0;
+            isScenarioActive = false;
+
+            if (UI_Controller.Instance != null)
+            {
+                UI_Controller.Instance.UpdateTimerDisplay(0);
+            }
+
+            EndScenario();
         }
     }
 
     public void StartScenario()
     {
-        currentScore = 0;
-        timeRemaining = scenarioDuration;
-        isGameActive = true;
+        currentSession = new TriageSessionData
+        {
+            studentId = currentStudentId,
+            protocolType = "TRIAGE",
+            steps = new List<ProtocolStepLog>()
+        };
+
         triagedPatients.Clear();
+        startTime = Time.time;
+        timeRemaining = scenarioDuration;
+        isScenarioActive = true;
     }
 
-    private void UpdateTimer()
+    public void LogProtocolStep(string stepName, string patientId, bool isCorrect, string details)
     {
-        timeRemaining -= Time.deltaTime;
-        UI_Controller.Instance.UpdateTimerDisplay(timeRemaining);
+        if (currentSession == null) return;
 
-        if (timeRemaining <= 0)
+        ProtocolStepLog log = new ProtocolStepLog
         {
-            timeRemaining = 0;
-            EndScenario();
-        }
+            stepName = stepName,
+            patientId = patientId,
+            isCorrect = isCorrect,
+            timestamp = Time.time - startTime,
+            details = details
+        };
+
+        currentSession.steps.Add(log);
     }
 
     public void RegisterTriagedPatient(Patient3D patient)
     {
-        if (!isGameActive || triagedPatients.Contains(patient)) return;
+        if (!triagedPatients.Contains(patient))
+        {
+            triagedPatients.Add(patient);
 
-        triagedPatients.Add(patient);
+            bool correct = (patient.isCriticallyIll && (patient.assignedCategory == TriageCategory.RED || patient.assignedCategory == TriageCategory.ORANGE)) ||
+                           (!patient.isCriticallyIll && (patient.assignedCategory == TriageCategory.YELLOW || patient.assignedCategory == TriageCategory.GREEN));
 
-        // Scenario eindigt als alle patiënten getrieerd zijn
+            LogProtocolStep("ASSIGN_TRIAGE", patient.patientId, correct, $"Toegewezen: {patient.assignedCategory}");
+        }
+
         if (triagedPatients.Count >= totalPatientsInScenario)
         {
             EndScenario();
@@ -73,11 +121,31 @@ public class GameManager : MonoBehaviour
 
     public void EndScenario()
     {
-        isGameActive = false;
+        if (!isScenarioActive) return;
+        isScenarioActive = false;
 
-        currentScore = evaluationSystem.CalculateFinalScore(triagedPatients, timeRemaining);
-        string report = evaluationSystem.GenerateFeedbackReport();
+        currentSession.completionTime = Time.time - startTime;
 
-        UI_Controller.Instance.ShowFinalResults(currentScore, report);
+        if (evaluationSystem != null)
+        {
+            currentSession.finalScore = evaluationSystem.CalculateFinalScore(triagedPatients, currentSession.completionTime);
+        }
+
+        if (UI_Controller.Instance != null)
+        {
+            UI_Controller.Instance.ShowFinalResults(currentSession.finalScore, "Scenario Voltooid!");
+        }
+
+        currentSession.isPassed = currentSession.finalScore >= 70;
+
+        if (APIService.Instance != null)
+        {
+            APIService.Instance.SendSessionData(currentSession);
+        }
+    }
+
+    public void RestartScenario()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 }
